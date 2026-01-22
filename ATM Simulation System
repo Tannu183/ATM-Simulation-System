@@ -1,0 +1,202 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
+
+class Account {
+    private final String pin;
+    private double balance;
+    private final String holderName;
+
+    public Account(String accountNumber, String pin, String holderName, double balance) {
+        this.pin = pin;
+        this.holderName = holderName;
+        this.balance = balance;
+    }
+
+    public boolean validatePin(String enteredPin) {
+        return pin.equals(enteredPin);
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+
+    public void deposit(double amount) {
+        if (amount > 0) balance += amount;
+    }
+
+    public boolean withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    public String getHolderName() {
+        return holderName;
+    }
+}
+
+public class FancyATM extends JFrame {
+    private final Map<String, Account> accounts = new HashMap<>();
+    private Account currentAccount;
+
+    private final JPanel mainPanel;
+    private JPanel loginPanel;
+    private JPanel menuPanel;
+    private final CardLayout cardLayout;
+    private JLabel messageLabel;
+
+    public FancyATM() {
+        setTitle("🏧 Java ATM - Modern Edition");
+        setSize(500, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+
+        // Dummy accounts
+        accounts.put("123456", new Account("123456", "1111", "Alice Johnson", 1000));
+        accounts.put("654321", new Account("654321", "2222", "Bob Smith", 1500));
+
+        createLoginPanel();
+        createMenuPanel();
+
+        mainPanel.add(loginPanel, "Login");
+        mainPanel.add(menuPanel, "Menu");
+
+        add(mainPanel);
+        cardLayout.show(mainPanel, "Login");
+    }
+
+    private void createLoginPanel() {
+        loginPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                // simple gradient background
+                Graphics2D g2d = (Graphics2D) g;
+                GradientPaint gp = new GradientPaint(0, 0, Color.decode("#1E3C72"), 0, getHeight(), Color.decode("#2A5298"));
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        loginPanel.setLayout(null);
+
+        JLabel title = new JLabel("🏧 Welcome to Secure Bank ATM", SwingConstants.CENTER);
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Arial Rounded MT Bold", Font.BOLD, 18));
+        title.setBounds(50, 30, 400, 30);
+
+        JLabel accLabel = new JLabel("Account Number:", SwingConstants.LEFT);
+        accLabel.setForeground(Color.WHITE);
+        accLabel.setBounds(100, 100, 150, 25);
+
+        JTextField accField = new JTextField();
+        accField.setBounds(250, 100, 150, 25);
+
+        JLabel pinLabel = new JLabel("PIN:", SwingConstants.LEFT);
+        pinLabel.setForeground(Color.WHITE);
+        pinLabel.setBounds(100, 140, 150, 25);
+
+        JPasswordField pinField = new JPasswordField();
+        pinField.setBounds(250, 140, 150, 25);
+
+        JButton loginBtn = new JButton("Login");
+        loginBtn.setBackground(Color.decode("#4CAF50"));
+        loginBtn.setForeground(Color.WHITE);
+        loginBtn.setFont(new Font("Segue UI", Font.BOLD, 14));
+        loginBtn.setBounds(200, 190, 100, 30);
+
+        messageLabel = new JLabel("", SwingConstants.CENTER);
+        messageLabel.setForeground(Color.YELLOW);
+        messageLabel.setBounds(100, 230, 300, 25);
+
+        loginBtn.addActionListener(e -> {
+            String acc = accField.getText();
+            String pin = new String(pinField.getPassword());
+            if (accounts.containsKey(acc) && accounts.get(acc).validatePin(pin)) {
+                currentAccount = accounts.get(acc);
+                messageLabel.setText("✅ Welcome " + currentAccount.getHolderName());
+                cardLayout.show(mainPanel, "Menu");
+            } else {
+                messageLabel.setText("❌ Invalid Account or PIN!");
+            }
+        });
+
+        loginPanel.add(title);
+        loginPanel.add(accLabel);
+        loginPanel.add(accField);
+        loginPanel.add(pinLabel);
+        loginPanel.add(pinField);
+        loginPanel.add(loginBtn);
+        loginPanel.add(messageLabel);
+    }
+
+    private void createMenuPanel() {
+        menuPanel = new JPanel(new GridLayout(6, 1, 10, 10));
+        menuPanel.setBackground(Color.decode("#0B132B"));
+        menuPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
+
+        JLabel title = new JLabel("ATM Main Menu", SwingConstants.CENTER);
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Arial Rounded MT Bold", Font.BOLD, 18));
+
+        JButton balanceBtn = createStyledButton("💰 Check Balance");
+        JButton depositBtn = createStyledButton("💵 Deposit");
+        JButton withdrawBtn = createStyledButton("💸 Withdraw");
+        JButton exitBtn = createStyledButton("🚪 Exit");
+
+        balanceBtn.addActionListener(e ->
+                JOptionPane.showMessageDialog(this,
+                        "Your Current Balance: $" + currentAccount.getBalance(),
+                        "Balance", JOptionPane.INFORMATION_MESSAGE));
+
+        depositBtn.addActionListener(e -> {
+            String amtStr = JOptionPane.showInputDialog(this, "Enter amount to deposit:");
+            if (amtStr != null && !amtStr.isEmpty()) {
+                double amt = Double.parseDouble(amtStr);
+                currentAccount.deposit(amt);
+                JOptionPane.showMessageDialog(this, "✅ Deposited ₹" + amt);
+            }
+        });
+
+        withdrawBtn.addActionListener(e -> {
+            String amtStr = JOptionPane.showInputDialog(this, "Enter amount to withdraw:");
+            if (amtStr != null && !amtStr.isEmpty()) {
+                double amt = Double.parseDouble(amtStr);
+                if (currentAccount.withdraw(amt))
+                    JOptionPane.showMessageDialog(this, "💸 Withdrawn ₹" + amt);
+                else
+                    JOptionPane.showMessageDialog(this, "⚠️ Insufficient balance!");
+            }
+        });
+
+        exitBtn.addActionListener(e -> {
+            currentAccount = null;
+            cardLayout.show(mainPanel, "Login");
+        });
+
+        menuPanel.add(title);
+        menuPanel.add(balanceBtn);
+        menuPanel.add(depositBtn);
+        menuPanel.add(withdrawBtn);
+        menuPanel.add(exitBtn);
+    }
+
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(Color.decode("#1C2541"));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segue UI", Font.BOLD, 14));
+        button.setFocusPainted(false);
+        return button;
+    }
+
+    public static void main() {
+        SwingUtilities.invokeLater(() -> new FancyATM().setVisible(true));
+    }
+}
